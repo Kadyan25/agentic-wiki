@@ -4,7 +4,7 @@ import subprocess
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 
 
-def sync():
+def sync(query: str = ""):
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPO")  # e.g. "Kadyan25/agentic-wiki"
 
@@ -28,7 +28,9 @@ def sync():
         if result.returncode == 0:
             return  # nothing changed
 
-        subprocess.run(["git", "commit", "-m", "update knowledge base"], cwd=ROOT, check=True)
+        short_query = query.strip()[:60] if query.strip() else "general query"
+        commit_msg = f"knowledge update: {short_query}"
+        subprocess.run(["git", "commit", "-m", commit_msg], cwd=ROOT, check=True)
         subprocess.run(["git", "push", "origin", "master"], cwd=ROOT, check=True)
 
     except subprocess.CalledProcessError:

@@ -66,7 +66,7 @@ def run_pipeline(query: str) -> dict:
         "files_written": [],
     })
 
-    git_sync.sync()
+    git_sync.sync(query)
 
     return {
         "answer": summarizer_out["output"],
