@@ -3,7 +3,7 @@ from openai import OpenAI
 client = OpenAI()
 
 
-def call_claude(system_prompt: str, user_message: str, max_tokens: int = 1000) -> str:
+def call_ai(system_prompt: str, user_message: str, max_tokens: int = 1000) -> str:
     response = client.chat.completions.create(
         model="gpt-4o",
         max_tokens=max_tokens,

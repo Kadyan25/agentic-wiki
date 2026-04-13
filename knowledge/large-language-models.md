@@ -2,7 +2,7 @@
 
 **Created**: 2026-04-13  
 **Updated**: 2026-04-13  
-**Tags**: llm, transformers, nlp, deep learning, gpt, claude
+**Tags**: llm, transformers, nlp, deep learning, gpt
 
 ## Summary
 Large Language Models (LLMs) are deep learning models trained on vast amounts of text data to understand and generate human language. They are built on the transformer architecture and use self-attention mechanisms to model relationships between tokens across long contexts.

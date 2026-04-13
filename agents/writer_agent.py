@@ -1,7 +1,7 @@
 import os
 import re
 import datetime
-from .utils import call_claude
+from .utils import call_ai
 
 KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "..", "knowledge")
 
@@ -17,8 +17,7 @@ def run(query: str, context: dict) -> dict:
     summary = context.get("summarizer", {}).get("output", "")
     today = datetime.date.today().isoformat()
 
-    # Ask Claude to extract a clean topic title and tags from the query
-    meta = call_claude(
+    meta = call_ai(
         "You extract metadata from a query. Reply with exactly two lines:\n"
         "TITLE: <concise topic title, title case, 2-5 words>\n"
         "TAGS: <3-5 comma-separated lowercase tags>",
@@ -37,7 +36,6 @@ def run(query: str, context: dict) -> dict:
     filename = _slug(title) + ".md"
     filepath = os.path.join(KNOWLEDGE_DIR, filename)
 
-    # Check if file already exists (update vs create)
     created_date = today
     if os.path.exists(filepath):
         with open(filepath, "r", encoding="utf-8") as f:

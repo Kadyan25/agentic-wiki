@@ -23,7 +23,7 @@ def run_pipeline(query: str) -> dict:
     context["summarizer"] = summarizer_out
     agent_trace.append({
         "agent": "Summarizer Agent",
-        "action": "Generated structured summary via Claude API.",
+        "action": "Generated structured summary via OpenAI API.",
         "files_read": [],
         "files_written": [],
     })

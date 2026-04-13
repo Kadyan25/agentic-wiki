@@ -1,6 +1,6 @@
 import os
 import re
-from .utils import call_claude
+from .utils import call_ai
 
 KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "..", "knowledge")
 
@@ -26,8 +26,7 @@ def run(query: str, context: dict) -> dict:
         if slug not in existing_files:
             broken_links.append(link)
 
-    # Ask Claude to score the note
-    score_response = call_claude(
+    score_response = call_ai(
         "You are a quality validator for a knowledge base. "
         "Given a query, a summary, and the written note, score the quality from 1-10. "
         "Reply with exactly:\nSCORE: <number>\nISSUES: <comma-separated issues or 'none'>\n"

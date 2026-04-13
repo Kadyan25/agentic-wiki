@@ -1,4 +1,4 @@
-from .utils import call_claude
+from .utils import call_ai
 
 
 def run(query: str, context: dict) -> dict:
@@ -16,7 +16,7 @@ def run(query: str, context: dict) -> dict:
         "Produce a structured markdown summary answering the query."
     )
 
-    summary = call_claude(system_prompt, user_message, max_tokens=1000)
+    summary = call_ai(system_prompt, user_message, max_tokens=1000)
 
     return {
         "output": summary,
