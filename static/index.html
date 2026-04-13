@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Wiki</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #7c6af7;
+      --accent-dim: #4a3fa8;
+      --text: #e2e4f0;
+      --muted: #7a7f9a;
+      --green: #3ecf8e;
+      --yellow: #f59e0b;
+      --red: #f87171;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    header .pill {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 0;
+      height: calc(100vh - 65px);
+    }
+
+    main {
+      padding: 2rem;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+    }
+
+    .query-box {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .query-box input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .query-box input:focus { border-color: var(--accent); }
+    .query-box input::placeholder { color: var(--muted); }
+
+    .query-box button {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .query-box button:hover { background: var(--accent-dim); }
+    .query-box button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .spinner {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .spinner.active { display: flex; }
+
+    .spinner-dot {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .spinner-dot:nth-child(2) { animation-delay: 0.2s; }
+    .spinner-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.7); opacity: 0.4; }
+      50% { transform: scale(1); opacity: 1; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .score-badge {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+    }
+
+    .score-high { background: rgba(62,207,142,0.15); color: var(--green); }
+    .score-mid  { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .score-low  { background: rgba(248,113,113,0.15); color: var(--red); }
+
+    .answer-text {
+      line-height: 1.7;
+      font-size: 0.97rem;
+      white-space: pre-wrap;
+    }
+
+    .answer-text h1, .answer-text h2, .answer-text h3 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+
+    /* Trace */
+    details { margin-bottom: 0.5rem; }
+
+    details summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: var(--bg);
+      font-size: 0.85rem;
+      font-weight: 500;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    details summary:hover { background: var(--border); }
+    details summary::before { content: '▶'; font-size: 0.6rem; color: var(--accent); transition: transform 0.2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+
+    .trace-body {
+      padding: 0.75rem 1rem;
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.6;
+      border-left: 2px solid var(--border);
+      margin: 0.25rem 0 0.25rem 0.75rem;
+    }
+
+    .trace-files { margin-top: 0.4rem; }
+    .trace-files span {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      padding: 0.1rem 0.4rem;
+      margin: 0.15rem 0.15rem 0 0;
+      color: var(--muted);
+    }
+
+    /* Sidebar */
+    aside {
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    aside h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .note-item {
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: 0.25rem;
+    }
+
+    .note-item:hover { background: var(--surface); }
+
+    .note-item .note-title {
+      font-size: 0.88rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .note-item .note-date {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h3 { font-size: 0.95rem; font-weight: 600; }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      color: var(--muted);
+    }
+
+    #placeholder {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    #placeholder h2 {
+      font-size: 1.4rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    #placeholder p { font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Agentic Wiki</h1>
+  <span class="pill">Multi-Agent</span>
+</header>
+
+<div class="layout">
+  <main>
+    <div class="query-box">
+      <input id="queryInput" type="text" placeholder="Ask anything... e.g. What are transformer models?" />
+      <button id="submitBtn" onclick="submitQuery()">Ask</button>
+    </div>
+
+    <div class="spinner" id="spinner">
+      <div class="spinner-dot"></div>
+      <div class="spinner-dot"></div>
+      <div class="spinner-dot"></div>
+      <span>Agents are working...</span>
+    </div>
+
+    <div id="results">
+      <div id="placeholder">
+        <h2>Ask the agents anything.</h2>
+        <p>Your query will be researched, summarized, written to the knowledge base,<br>linked, and validated — all automatically.</p>
+      </div>
+    </div>
+  </main>
+
+  <aside>
+    <h2>Knowledge Base</h2>
+    <div id="notesList"></div>
+  </aside>
+</div>
+
+<!-- Note Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Note</h3>
+      <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+  async function submitQuery() {
+    const input = document.getElementById('queryInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const btn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('spinner');
+    const results = document.getElementById('results');
+
+    btn.disabled = true;
+    spinner.classList.add('active');
+    results.innerHTML = '';
+
+    try {
+      const res = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      renderResults(data);
+      loadNotes();
+    } catch (err) {
+      results.innerHTML = `<div class="card"><p style="color:var(--red)">Error: ${err.message}</p></div>`;
+    } finally {
+      btn.disabled = false;
+      spinner.classList.remove('active');
+    }
+  }
+
+  function renderResults(data) {
+    const results = document.getElementById('results');
+
+    const scoreClass = data.validation.score >= 8 ? 'score-high'
+                     : data.validation.score >= 5 ? 'score-mid' : 'score-low';
+
+    let notesHtml = '';
+    if (data.notes_created.length) {
+      notesHtml += `<span style="color:var(--green)">✦ Created: ${data.notes_created.join(', ')}</span><br>`;
+    }
+    if (data.notes_updated.length) {
+      notesHtml += `<span style="color:var(--yellow)">↻ Updated: ${data.notes_updated.join(', ')}</span>`;
+    }
+
+    let issuesHtml = '';
+    if (data.validation.issues.length) {
+      issuesHtml = `<div style="margin-top:0.75rem;font-size:0.8rem;color:var(--muted)">
+        Issues: ${data.validation.issues.join(' · ')}
+      </div>`;
+    }
+
+    let traceHtml = data.agent_trace.map(t => {
+      const filesRead = t.files_read?.length ? `<div class="trace-files"><strong>Read:</strong> ${t.files_read.map(f => `<span>${f}</span>`).join('')}</div>` : '';
+      const filesWritten = t.files_written?.length ? `<div class="trace-files"><strong>Wrote:</strong> ${t.files_written.map(f => `<span>${f}</span>`).join('')}</div>` : '';
+      return `
+        <details>
+          <summary>${t.agent}</summary>
+          <div class="trace-body">
+            ${t.action}
+            ${filesRead}${filesWritten}
+          </div>
+        </details>`;
+    }).join('');
+
+    results.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Answer</span>
+          <span class="score-badge ${scoreClass}">Quality ${data.validation.score}/10</span>
+        </div>
+        <div class="answer-text">${escapeHtml(data.answer)}</div>
+        ${notesHtml ? `<div style="margin-top:1rem;font-size:0.8rem;">${notesHtml}</div>` : ''}
+        ${issuesHtml}
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Agent Trace</span></div>
+        ${traceHtml}
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function loadNotes() {
+    const list = document.getElementById('notesList');
+    try {
+      const res = await fetch('/api/notes');
+      const notes = await res.json();
+      list.innerHTML = notes.map(n => `
+        <div class="note-item" onclick="openNote('${n.filename}', '${escapeHtml(n.title)}')">
+          <div class="note-title">${escapeHtml(n.title)}</div>
+          <div class="note-date">${n.last_updated}</div>
+        </div>
+      `).join('');
+    } catch {
+      list.innerHTML = '<p style="font-size:0.8rem;color:var(--muted)">Could not load notes.</p>';
+    }
+  }
+
+  async function openNote(filename, title) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = 'Loading...';
+    document.getElementById('modalOverlay').classList.add('open');
+    const res = await fetch(`/api/notes/${filename}`);
+    const data = await res.json();
+    document.getElementById('modalBody').textContent = data.content;
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modalOverlay')) {
+      document.getElementById('modalOverlay').classList.remove('open');
+    }
+  }
+
+  document.getElementById('queryInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitQuery();
+  });
+
+  loadNotes();
+</script>
+</body>
+</html>
