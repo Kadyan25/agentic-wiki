@@ -5,8 +5,27 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import threading
+import time
+import urllib.request
 
 load_dotenv()
+
+
+def _self_ping():
+    url = os.getenv("RENDER_EXTERNAL_URL")
+    if not url:
+        return  # only runs on Render
+    url = url.rstrip("/") + "/api/notes"
+    while True:
+        time.sleep(300)  # 5 minutes
+        try:
+            urllib.request.urlopen(url, timeout=10)
+        except Exception:
+            pass
+
+
+threading.Thread(target=_self_ping, daemon=True).start()
 
 from agents.orchestrator import run_pipeline
 

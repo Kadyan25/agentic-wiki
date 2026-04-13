@@ -1,37 +1,63 @@
 import os
 import subprocess
+import logging
 
-ROOT = os.path.join(os.path.dirname(__file__), "..")
+logger = logging.getLogger("git_sync")
+logging.basicConfig(level=logging.INFO, format="[git_sync] %(message)s")
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _run(cmd: list, **kwargs) -> subprocess.CompletedProcess:
+    logger.info("Running: %s", " ".join(cmd))
+    result = subprocess.run(cmd, capture_output=True, text=True, **kwargs)
+    if result.stdout.strip():
+        logger.info("stdout: %s", result.stdout.strip())
+    if result.stderr.strip():
+        logger.info("stderr: %s", result.stderr.strip())
+    logger.info("exit code: %d", result.returncode)
+    return result
 
 
 def sync(query: str = ""):
     token = os.getenv("GITHUB_TOKEN")
-    repo = os.getenv("GITHUB_REPO")  # e.g. "Kadyan25/agentic-wiki"
+    repo = os.getenv("GITHUB_REPO")
+
+    logger.info("=== git_sync.sync() called ===")
+    logger.info("GITHUB_TOKEN present: %s", bool(token))
+    logger.info("GITHUB_REPO: %s", repo)
+    logger.info("ROOT: %s", ROOT)
 
     if not token or not repo:
-        return  # not configured, skip silently
+        logger.info("Skipping — GITHUB_TOKEN or GITHUB_REPO not set.")
+        return
 
     try:
-        # Set git identity
-        subprocess.run(["git", "config", "user.email", "bot@agenticwiki.app"], cwd=ROOT, check=True)
-        subprocess.run(["git", "config", "user.name", "Agentic Wiki Bot"], cwd=ROOT, check=True)
+        _run(["git", "config", "user.email", "bot@agenticwiki.app"], cwd=ROOT)
+        _run(["git", "config", "user.name", "Agentic Wiki Bot"], cwd=ROOT)
 
-        # Embed token in remote URL
         remote_url = f"https://{token}@github.com/{repo}.git"
-        subprocess.run(["git", "remote", "set-url", "origin", remote_url], cwd=ROOT, check=True)
+        _run(["git", "remote", "set-url", "origin", remote_url], cwd=ROOT)
 
-        # Stage knowledge folder
-        subprocess.run(["git", "add", "knowledge/"], cwd=ROOT, check=True)
+        _run(["git", "add", "knowledge/"], cwd=ROOT)
 
-        # Check if there is anything new to commit
-        result = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT)
-        if result.returncode == 0:
-            return  # nothing changed
+        diff = _run(["git", "diff", "--cached", "--stat"], cwd=ROOT)
+        if not diff.stdout.strip():
+            logger.info("Nothing to commit — knowledge base unchanged.")
+            return
 
         short_query = query.strip()[:60] if query.strip() else "general query"
         commit_msg = f"knowledge update: {short_query}"
-        subprocess.run(["git", "commit", "-m", commit_msg], cwd=ROOT, check=True)
-        subprocess.run(["git", "push", "origin", "master"], cwd=ROOT, check=True)
+        commit = _run(["git", "commit", "-m", commit_msg], cwd=ROOT)
+        if commit.returncode != 0:
+            logger.info("Commit failed.")
+            return
 
-    except subprocess.CalledProcessError:
-        pass  # never break the query response over a sync failure
+        push = _run(["git", "push", "origin", "master"], cwd=ROOT)
+        if push.returncode == 0:
+            logger.info("Push successful.")
+        else:
+            logger.info("Push failed.")
+
+    except Exception as e:
+        logger.info("Exception during sync: %s", str(e))
