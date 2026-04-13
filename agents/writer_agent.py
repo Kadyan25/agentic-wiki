@@ -14,7 +14,7 @@ def _slug(text: str) -> str:
 
 
 def run(query: str, context: dict) -> dict:
-    summary = context.get("summarizer", {}).get("output", "")
+    new_summary = context.get("summarizer", {}).get("output", "")
     today = datetime.date.today().isoformat()
 
     meta = call_ai(
@@ -37,12 +37,27 @@ def run(query: str, context: dict) -> dict:
     filepath = os.path.join(KNOWLEDGE_DIR, filename)
 
     created_date = today
-    if os.path.exists(filepath):
+    is_update = os.path.exists(filepath)
+
+    if is_update:
         with open(filepath, "r", encoding="utf-8") as f:
             existing = f.read()
+
         match = re.search(r"\*\*Created\*\*:\s*(\S+)", existing)
         if match:
             created_date = match.group(1)
+
+        # Merge existing note with new summary instead of overwriting
+        summary = call_ai(
+            "You are a knowledge base editor. You are given an existing note and new information "
+            "about the same topic from a new query. Merge them into a single enriched summary. "
+            "Keep all unique facts from both. Remove duplicates. Stay under 500 words. "
+            "Return only the merged summary text, no headings.",
+            f"Existing note:\n{existing}\n\nNew information:\n{new_summary}\n\nNew query: {query}",
+            max_tokens=1200,
+        )
+    else:
+        summary = new_summary
 
     content = f"""# {title}
 
@@ -63,7 +78,7 @@ def run(query: str, context: dict) -> dict:
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
 
-    action = "updated" if os.path.exists(filepath) else "created"
+    action = "updated" if is_update else "created"
 
     return {
         "output": f"Note '{filename}' {action}.",
