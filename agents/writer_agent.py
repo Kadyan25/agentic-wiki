@@ -57,7 +57,7 @@ def run(query: str, context: dict) -> dict:
 - See summary above for detailed points.
 
 ## Related Topics
-<!-- [[links]] will be added by the Linker Agent -->
+
 """
 
     with open(filepath, "w", encoding="utf-8") as f:

@@ -2,6 +2,7 @@
 
 *Last updated: 2026-04-13*
 
-- [[Artificial Intelligence]] → `artificial-intelligence.md`
 - [[Agentic Systems]] → `agentic-systems.md`
+- [[Artificial Intelligence]] → `artificial-intelligence.md`
 - [[Large Language Models]] → `large-language-models.md`
+- [[Transformer Models Overview]] → `transformer-models-overview.md`
