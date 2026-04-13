@@ -1,4 +1,5 @@
 from . import research_agent, summarizer_agent, writer_agent, linker_agent, validator_agent
+from . import git_sync
 
 
 def run_pipeline(query: str) -> dict:
@@ -64,6 +65,8 @@ def run_pipeline(query: str) -> dict:
         "files_read": validator_out["files_read"],
         "files_written": [],
     })
+
+    git_sync.sync()
 
     return {
         "answer": summarizer_out["output"],
