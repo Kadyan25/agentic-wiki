@@ -321,6 +321,75 @@
     }
 
     #placeholder p { font-size: 0.9rem; }
+
+    /* ── Sidebar toggle button (hidden on desktop) ── */
+    .sidebar-toggle {
+      display: none;
+      margin-left: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.4rem 0.75rem;
+      transition: background 0.15s;
+    }
+    .sidebar-toggle:hover { background: var(--border); }
+
+    /* ── Tablet (640px – 1023px) ── */
+    @media (max-width: 1023px) {
+      header { padding: 1rem 1.25rem; }
+      .sidebar-toggle { display: inline-block; }
+
+      .layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: calc(100vh - 57px);
+      }
+
+      main {
+        padding: 1.5rem;
+        border-right: none;
+      }
+
+      aside {
+        border-top: 1px solid var(--border);
+        max-height: 0;
+        overflow: hidden;
+        padding: 0 1.5rem;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+      }
+      aside.open {
+        max-height: 400px;
+        padding: 1.25rem 1.5rem;
+        overflow-y: auto;
+      }
+    }
+
+    /* ── Mobile (< 640px) ── */
+    @media (max-width: 639px) {
+      header { padding: 0.75rem 1rem; }
+
+      main { padding: 1rem; }
+
+      #placeholder { padding: 2rem 1rem; }
+
+      .modal {
+        width: 95%;
+        max-height: 90vh;
+        border-radius: 10px;
+      }
+      .modal-header { padding: 0.75rem 1rem; }
+      .modal-body { padding: 1rem; }
+    }
+
+    /* ── Very small (< 400px) ── */
+    @media (max-width: 400px) {
+      .query-box { flex-direction: column; }
+      .query-box button { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -328,6 +397,7 @@
 <header>
   <h1>Agentic Wiki</h1>
   <span class="pill">Multi-Agent</span>
+  <button class="sidebar-toggle" onclick="toggleSidebar()">☰ Notes</button>
 </header>
 
 <div class="layout">
@@ -491,6 +561,10 @@
     if (e.target === document.getElementById('modalOverlay')) {
       document.getElementById('modalOverlay').classList.remove('open');
     }
+  }
+
+  function toggleSidebar() {
+    document.querySelector('aside').classList.toggle('open');
   }
 
   document.getElementById('queryInput').addEventListener('keydown', e => {
