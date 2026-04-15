@@ -25,6 +25,7 @@
       color: var(--text);
       font-family: 'Segoe UI', system-ui, sans-serif;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     header {
@@ -62,6 +63,7 @@
     main {
       padding: 2rem;
       overflow-y: auto;
+      overflow-x: hidden;
       border-right: 1px solid var(--border);
     }
 
@@ -165,6 +167,8 @@
       line-height: 1.7;
       font-size: 0.97rem;
       white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .answer-text h1, .answer-text h2, .answer-text h3 {
@@ -202,6 +206,8 @@
       line-height: 1.6;
       border-left: 2px solid var(--border);
       margin: 0.25rem 0 0.25rem 0.75rem;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
 
     .trace-files { margin-top: 0.4rem; }
@@ -303,6 +309,8 @@
       font-size: 0.85rem;
       line-height: 1.7;
       white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
       font-family: 'Cascadia Code', 'Fira Code', monospace;
       color: var(--muted);
     }
@@ -372,7 +380,12 @@
     @media (max-width: 639px) {
       header { padding: 0.75rem 1rem; }
 
-      main { padding: 1rem; }
+      main {
+        padding: 1rem;
+        overflow-y: unset;
+      }
+
+      .card { padding: 1rem; }
 
       #placeholder { padding: 2rem 1rem; }
 
