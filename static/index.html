@@ -403,6 +403,78 @@
       .query-box { flex-direction: column; }
       .query-box button { width: 100%; }
     }
+
+    .ingest-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .ingest-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.92rem;
+      padding: 0.6rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .ingest-row input[type="text"]:focus { border-color: var(--accent); }
+    .ingest-row input[type="text"]::placeholder { color: var(--muted); }
+
+    .ingest-row input[type="file"] {
+      display: none;
+    }
+
+    .file-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.6rem 1rem;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .file-label:hover { background: var(--border); }
+    .file-label.has-file { border-color: var(--accent); color: var(--accent); }
+
+    .ingest-btn {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.6rem 1.1rem;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .ingest-btn:hover { background: var(--accent-dim); color: #fff; }
+    .ingest-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .ingest-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .ingest-section {
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
 <body>
@@ -418,6 +490,23 @@
     <div class="query-box">
       <input id="queryInput" type="text" placeholder="Ask anything... e.g. What are transformer models?" />
       <button id="submitBtn" onclick="submitQuery()">Ask</button>
+    </div>
+
+    <div class="ingest-section">
+      <div class="ingest-label">Ingest from URL</div>
+      <div class="ingest-row">
+        <input type="text" id="urlInput" placeholder="https://example.com/article" />
+        <button class="ingest-btn" id="urlBtn" onclick="ingestUrl()">Ingest URL</button>
+      </div>
+    </div>
+
+    <div class="ingest-section">
+      <div class="ingest-label">Ingest from PDF</div>
+      <div class="ingest-row">
+        <label class="file-label" id="fileLabel" for="pdfInput">📄 Choose PDF</label>
+        <input type="file" id="pdfInput" accept=".pdf" onchange="onPdfSelected()" />
+        <button class="ingest-btn" id="pdfBtn" onclick="ingestPdf()" disabled>Ingest PDF</button>
+      </div>
     </div>
 
     <div class="spinner" id="spinner">
@@ -454,42 +543,41 @@
 
 <script>
   async function submitQuery() {
-    const input = document.getElementById('queryInput');
-    const query = input.value.trim();
+    const query = document.getElementById('queryInput').value.trim();
     if (!query) return;
-
-    const btn = document.getElementById('submitBtn');
-    const spinner = document.getElementById('spinner');
-    const results = document.getElementById('results');
-
-    btn.disabled = true;
-    spinner.classList.add('active');
-    results.innerHTML = '';
-
+    setLoading(true);
     try {
       const res = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       });
-
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
       renderResults(data);
       loadNotes();
     } catch (err) {
-      results.innerHTML = `<div class="card"><p style="color:var(--red)">Error: ${err.message}</p></div>`;
+      document.getElementById('results').innerHTML =
+        `<div class="card"><p style="color:var(--red)">Error: ${err.message}</p></div>`;
     } finally {
-      btn.disabled = false;
-      spinner.classList.remove('active');
+      setLoading(false);
     }
   }
+
+  const INPUT_TYPE_LABELS = {
+    text_query: { label: 'Text Query', icon: '✎' },
+    document:   { label: 'Document',   icon: '📄' },
+    url_content: { label: 'URL Content', icon: '🔗' },
+  };
 
   function renderResults(data) {
     const results = document.getElementById('results');
 
     const scoreClass = data.validation.score >= 8 ? 'score-high'
                      : data.validation.score >= 5 ? 'score-mid' : 'score-low';
+
+    const typeInfo = INPUT_TYPE_LABELS[data.input_type] || { label: data.input_type, icon: '◈' };
+    const typeBadge = `<span style="font-size:0.75rem;font-weight:600;padding:0.2rem 0.6rem;border-radius:999px;background:rgba(124,106,247,0.15);color:var(--accent);margin-right:0.5rem;">${typeInfo.icon} ${typeInfo.label}</span>`;
 
     let notesHtml = '';
     if (data.notes_created.length) {
@@ -523,7 +611,7 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Answer</span>
-          <span class="score-badge ${scoreClass}">Quality ${data.validation.score}/10</span>
+          <span>${typeBadge}<span class="score-badge ${scoreClass}">Quality ${data.validation.score}/10</span></span>
         </div>
         <div class="answer-text">${escapeHtml(data.answer)}</div>
         ${notesHtml ? `<div style="margin-top:1rem;font-size:0.8rem;">${notesHtml}</div>` : ''}
@@ -580,8 +668,88 @@
     document.querySelector('aside').classList.toggle('open');
   }
 
+  function setLoading(loading) {
+    const spinner = document.getElementById('spinner');
+    const results = document.getElementById('results');
+    document.getElementById('submitBtn').disabled = loading;
+    document.getElementById('urlBtn').disabled = loading;
+    document.getElementById('pdfBtn').disabled = loading || !document.getElementById('pdfInput').files.length;
+    if (loading) {
+      spinner.classList.add('active');
+      results.innerHTML = '';
+    } else {
+      spinner.classList.remove('active');
+    }
+  }
+
+  function onPdfSelected() {
+    const input = document.getElementById('pdfInput');
+    const label = document.getElementById('fileLabel');
+    const btn = document.getElementById('pdfBtn');
+    if (input.files.length) {
+      label.textContent = '📄 ' + input.files[0].name;
+      label.classList.add('has-file');
+      btn.disabled = false;
+    } else {
+      label.textContent = '📄 Choose PDF';
+      label.classList.remove('has-file');
+      btn.disabled = true;
+    }
+  }
+
+  async function ingestPdf() {
+    const input = document.getElementById('pdfInput');
+    if (!input.files.length) return;
+    setLoading(true);
+    const form = new FormData();
+    form.append('file', input.files[0]);
+    try {
+      const res = await fetch('/api/ingest/pdf', { method: 'POST', body: form });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || `Server error: ${res.status}`);
+      }
+      const data = await res.json();
+      renderResults(data);
+      loadNotes();
+    } catch (err) {
+      document.getElementById('results').innerHTML =
+        `<div class="card"><p style="color:var(--red)">Error: ${err.message}</p></div>`;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function ingestUrl() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/ingest/url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || `Server error: ${res.status}`);
+      }
+      const data = await res.json();
+      renderResults(data);
+      loadNotes();
+    } catch (err) {
+      document.getElementById('results').innerHTML =
+        `<div class="card"><p style="color:var(--red)">Error: ${err.message}</p></div>`;
+    } finally {
+      setLoading(false);
+    }
+  }
+
   document.getElementById('queryInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') submitQuery();
+  });
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') ingestUrl();
   });
 
   loadNotes();

@@ -5,6 +5,7 @@ def run(query: str, context: dict) -> dict:
     research_output = context.get("research", {}).get("output", "")
 
     system_prompt = (
+        "Always respond in structured JSON format. "
         "You are a knowledge summarizer. Given a user query and existing research notes, "
         "produce a structured, concise markdown summary. Include: a direct answer to the query, "
         "key facts as bullet points, and relevant subtopics. Keep it under 400 words."
