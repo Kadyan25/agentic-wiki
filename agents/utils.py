@@ -79,6 +79,28 @@ def call_vision(image_bytes: bytes, media_type: str, prompt: str) -> str:
     return response.content[0].text
 
 
+def stream_ai(
+    system_prompt: str,
+    user_message: str,
+    max_tokens: int = 1000,
+    model: str = DEFAULT_MODEL,
+):
+    """Stream tokens from the Anthropic API. Yields text chunks as they arrive."""
+    client = _get_client()
+    with client.messages.stream(
+        model=model,
+        max_tokens=max_tokens,
+        system=[{
+            "type": "text",
+            "text": system_prompt,
+            "cache_control": {"type": "ephemeral"},
+        }],
+        messages=[{"role": "user", "content": user_message}],
+    ) as stream:
+        for text in stream.text_stream:
+            yield text
+
+
 def get_active_provider() -> str:
     """Returns a human-readable label for the active provider."""
     return "Claude (Haiku)" if os.getenv("ANTHROPIC_API_KEY") else "No provider configured"

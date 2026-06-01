@@ -24,6 +24,11 @@ def sync(query: str = ""):
         logger.info("Skipping — DISABLE_GIT_SYNC is set.")
         return
 
+    # Only sync on Render — skip on local runs
+    if not os.getenv("RENDER"):
+        logger.info("Skipping — not running on Render.")
+        return
+
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPO")
 
@@ -57,7 +62,10 @@ def sync(query: str = ""):
             logger.info("Commit failed.")
             return
 
-        push = _run(["git", "push", "origin", "master"], cwd=ROOT)
+        # Push to whatever branch is currently checked out
+        branch_result = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT)
+        branch = branch_result.stdout.strip() or "main"
+        push = _run(["git", "push", "origin", branch], cwd=ROOT)
         if push.returncode == 0:
             logger.info("Push successful.")
         else:

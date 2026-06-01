@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
@@ -27,7 +27,7 @@ def _self_ping():
 
 threading.Thread(target=_self_ping, daemon=True).start()
 
-from agents.orchestrator import run_pipeline
+from agents.orchestrator import run_pipeline, run_pipeline_streaming
 
 app = FastAPI(title="Agentic Wiki")
 
@@ -54,6 +54,19 @@ class UrlRequest(BaseModel):
 async def query(req: QueryRequest):
     result = run_pipeline(req.query)
     return result
+
+
+@app.post("/api/stream")
+async def stream_query(req: QueryRequest):
+    """SSE endpoint — streams summarizer tokens then sends final result."""
+    return StreamingResponse(
+        run_pipeline_streaming(req.query),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disables Nginx buffering on Render
+        },
+    )
 
 
 @app.post("/api/ingest/pdf")
@@ -93,11 +106,32 @@ async def ingest_url(req: UrlRequest):
     except ImportError:
         raise HTTPException(status_code=500, detail="requests or beautifulsoup4 not installed")
 
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
     try:
-        resp = requests.get(url, timeout=10, headers={"User-Agent": "AgenticWiki/1.0"})
-        resp.raise_for_status()
+        resp = requests.get(url, timeout=15, headers=HEADERS, allow_redirects=True)
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=422, detail="Could not connect to the URL. Check the address and try again.")
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=422, detail="The page took too long to respond (15s timeout).")
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
+        raise HTTPException(status_code=422, detail=f"Request failed: {e}")
+
+    if resp.status_code == 403:
+        raise HTTPException(status_code=422, detail="Access denied (403) — this site blocks automated requests.")
+    if resp.status_code == 429:
+        raise HTTPException(status_code=422, detail="Rate limited (429) — the site is blocking too many requests. Try again later.")
+    if resp.status_code == 404:
+        raise HTTPException(status_code=422, detail="Page not found (404).")
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=422, detail=f"Page returned HTTP {resp.status_code}.")
 
     soup = BeautifulSoup(resp.text, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
