@@ -1,6 +1,6 @@
 # Knowledge Base Index
 
-*Last updated: 2026-04-13*
+*Last updated: 2026-06-01*
 
 - [[Agentic Ai Explained]] → `agentic-ai-explained.md`
 - [[Agentic Systems]] → `agentic-systems.md`
