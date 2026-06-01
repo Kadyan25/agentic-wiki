@@ -2,7 +2,7 @@
 
 A multimodal, multi-agent AI pipeline that turns any input — text, PDF, image, URL, or CSV — into structured knowledge. Seven specialised agents handle intake, extraction, semantic search, reasoning, writing, linking, and validation in sequence. The result is a growing, cross-linked markdown knowledge base with a clean dark-theme web UI.
 
-**Live demo:** _deploy to Render and add URL here_
+**Live demo:** https://agentic-wiki.onrender.com/
 **GitHub:** https://github.com/Kadyan25/agentic-wiki
 
 ---
