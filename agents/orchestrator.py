@@ -1,4 +1,5 @@
 import json
+import threading
 from . import intake_agent, extraction_agent, research_agent, summarizer_agent, writer_agent, linker_agent, validator_agent
 from . import git_sync
 
@@ -12,11 +13,14 @@ def _safe_run(agent_name: str, fn, *args, **kwargs):
 
 
 def _run_pre_summarizer(query: str) -> tuple[dict, list, dict]:
-    """Run intake → extraction → RAG. Returns (context, agent_trace, intake_data)."""
+    """
+    Run intake → then Extraction + RAG in parallel → returns (context, agent_trace, intake_data).
+    Extraction and RAG are independent after Intake, so they run concurrently.
+    """
     context = {}
     agent_trace = []
 
-    # Intake
+    # Intake — must complete first
     intake_out, err = _safe_run("Intake Agent", intake_agent.run, query, context)
     if err or intake_out is None:
         intake_out = {
@@ -31,8 +35,29 @@ def _run_pre_summarizer(query: str) -> tuple[dict, list, dict]:
 
     intake_data = intake_out["data"]
 
-    # Extraction
-    extraction_out, err = _safe_run("Extraction Agent", extraction_agent.run, query, context)
+    # Extraction + RAG in parallel — each writes to its own result slot
+    extraction_result = [None, None]  # [out, err]
+    research_result   = [None, None]
+
+    def _run_extraction():
+        extraction_result[0], extraction_result[1] = _safe_run(
+            "Extraction Agent", extraction_agent.run, query, context
+        )
+
+    def _run_research():
+        research_result[0], research_result[1] = _safe_run(
+            "RAG/Knowledge Agent", research_agent.run, query, context
+        )
+
+    t_extract = threading.Thread(target=_run_extraction)
+    t_research = threading.Thread(target=_run_research)
+    t_extract.start()
+    t_research.start()
+    t_extract.join()
+    t_research.join()
+
+    # Extraction result
+    extraction_out, err = extraction_result
     if err or extraction_out is None:
         extraction_out = {"output": err or "Extraction failed.", "files_read": [], "files_written": [], "data": {}}
         agent_trace.append({"agent": "Extraction Agent", "action": extraction_out["output"], "files_read": [], "files_written": [], "error": True})
@@ -40,8 +65,8 @@ def _run_pre_summarizer(query: str) -> tuple[dict, list, dict]:
         context["extraction"] = extraction_out
         agent_trace.append({"agent": "Extraction Agent", "action": extraction_out["output"], "files_read": [], "files_written": []})
 
-    # RAG
-    research_out, err = _safe_run("RAG/Knowledge Agent", research_agent.run, query, context)
+    # RAG result
+    research_out, err = research_result
     if err or research_out is None:
         research_out = {"output": err or "Research failed.", "files_read": [], "gaps": []}
         agent_trace.append({"agent": "RAG/Knowledge Agent", "action": research_out["output"], "files_read": [], "files_written": [], "error": True})
@@ -64,6 +89,18 @@ def _run_post_summarizer(query: str, context: dict, agent_trace: list, intake_da
     notes_updated = []
     summarizer_out = context.get("summarizer", {"output": "", "files_read": [], "files_written": []})
     research_out = context.get("research", {"files_read": [], "gaps": []})
+
+    # If summarizer produced nothing, skip writer + linker and return early with error
+    answer = summarizer_out.get("output", "").strip()
+    if not answer:
+        return {
+            "answer": "The AI service is currently unavailable. Please check your API key and try again.",
+            "input_type": intake_data["input_type"],
+            "notes_created": [],
+            "notes_updated": [],
+            "agent_trace": agent_trace,
+            "validation": {"score": 0, "issues": ["AI service unavailable"], "suggestions": []},
+        }
 
     # Writer
     writer_out, err = _safe_run("Action Agent", writer_agent.run, query, context)
@@ -149,7 +186,7 @@ def run_pipeline(query: str) -> dict:
     # Summarizer (synchronous)
     summarizer_out, err = _safe_run("Reasoning Agent", summarizer_agent.run, query, context)
     if err or summarizer_out is None:
-        summarizer_out = {"output": "Could not generate a summary.", "files_read": [], "files_written": []}
+        summarizer_out = {"output": "", "files_read": [], "files_written": []}
         agent_trace.append({"agent": "Reasoning Agent", "action": err or "Summarizer failed.", "files_read": [], "files_written": [], "error": True})
     else:
         context["summarizer"] = summarizer_out

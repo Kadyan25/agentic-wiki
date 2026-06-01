@@ -17,6 +17,9 @@ TOP_K = 5
 _index: list = []          # list of {"file": str, "chunk": str, "embedding": list}
 _indexed_files: set = set()
 
+# Embedding cache — avoids re-calling Google API for repeated queries
+_embed_cache: dict = {}
+
 
 # ── Chunker ────────────────────────────────────────────────────────────────────
 
@@ -98,13 +101,18 @@ def _chunk_text(text: str, size: int = 500, overlap: int = 50) -> list[str]:
 # ── Embedding ──────────────────────────────────────────────────────────────────
 
 def _embed(text: str, task_type: str = "retrieval_document") -> list:
+    cache_key = (task_type, text)
+    if cache_key in _embed_cache:
+        return _embed_cache[cache_key]
     try:
         result = genai.embed_content(
             model="models/gemini-embedding-001",
             content=text,
             task_type=task_type,
         )
-        return result["embedding"]
+        embedding = result["embedding"]
+        _embed_cache[cache_key] = embedding
+        return embedding
     except Exception:
         return []
 

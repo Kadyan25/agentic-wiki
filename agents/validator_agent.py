@@ -20,39 +20,42 @@ def run(query: str, context: dict) -> dict:
     # Check for broken [[links]]
     existing_files = {f for f in os.listdir(KNOWLEDGE_DIR) if f.endswith(".md")}
     found_links = re.findall(r"\[\[([^\]]+)\]\]", note_content)
-    broken_links = []
-    for link in found_links:
-        slug = link.lower().replace(" ", "-") + ".md"
-        if slug not in existing_files:
-            broken_links.append(link)
+    broken_links = [
+        link for link in found_links
+        if link.lower().replace(" ", "-") + ".md" not in existing_files
+    ]
 
-    score_response = call_ai(
-        "You are a quality validator for a knowledge base. "
-        "Given a query, a summary, and the written note, score the quality from 1-10. "
-        "Reply with exactly:\nSCORE: <number>\nISSUES: <comma-separated issues or 'none'>\n"
-        "SUGGESTIONS: <one brief suggestion or 'none'>",
-        f"Query: {query}\n\nSummary:\n{summary}\n\nNote:\n{note_content}",
-        max_tokens=150,
-    )
-
-    score = 7
+    score = 0  # default 0 — not 7 — so failure is visible
     issues = []
     suggestions = []
 
-    for line in score_response.splitlines():
-        if line.startswith("SCORE:"):
-            try:
-                score = int(line[6:].strip())
-            except ValueError:
-                pass
-        elif line.startswith("ISSUES:"):
-            raw = line[7:].strip()
-            if raw.lower() != "none":
-                issues = [i.strip() for i in raw.split(",")]
-        elif line.startswith("SUGGESTIONS:"):
-            raw = line[12:].strip()
-            if raw.lower() != "none":
-                suggestions = [raw]
+    try:
+        score_response = call_ai(
+            "You are a quality validator for a knowledge base. "
+            "Given a query, a summary, and the written note, score the quality from 1-10. "
+            "Reply with exactly:\nSCORE: <number>\nISSUES: <comma-separated issues or 'none'>\n"
+            "SUGGESTIONS: <one brief suggestion or 'none'>",
+            f"Query: {query}\n\nSummary:\n{summary}\n\nNote:\n{note_content}",
+            max_tokens=150,
+        )
+
+        for line in score_response.splitlines():
+            if line.startswith("SCORE:"):
+                try:
+                    score = max(0, min(10, int(line[6:].strip())))
+                except ValueError:
+                    pass
+            elif line.startswith("ISSUES:"):
+                raw = line[7:].strip()
+                if raw.lower() != "none":
+                    issues = [i.strip() for i in raw.split(",")]
+            elif line.startswith("SUGGESTIONS:"):
+                raw = line[12:].strip()
+                if raw.lower() != "none":
+                    suggestions = [raw]
+
+    except RuntimeError as e:
+        issues.append(f"Validation unavailable: {e}")
 
     if broken_links:
         issues.append(f"Broken links: {', '.join(broken_links)}")
