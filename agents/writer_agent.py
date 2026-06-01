@@ -18,7 +18,6 @@ def run(query: str, context: dict) -> dict:
     today = datetime.date.today().isoformat()
 
     meta = call_ai(
-        "Always respond in structured JSON format. "
         "You extract metadata from a query. Reply with exactly two lines:\n"
         "TITLE: <concise topic title, title case, 2-5 words>\n"
         "TAGS: <3-5 comma-separated lowercase tags>",
@@ -50,7 +49,6 @@ def run(query: str, context: dict) -> dict:
 
         # Merge existing note with new summary instead of overwriting
         summary = call_ai(
-            "Always respond in structured JSON format. "
             "You are a knowledge base editor. You are given an existing note and new information "
             "about the same topic from a new query. Merge them into a single enriched summary. "
             "Keep all unique facts from both. Remove duplicates. Stay under 500 words. "

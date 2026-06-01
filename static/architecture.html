@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture — Research Intelligence System</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #7c6af7;
+      --accent-dim: #4a3fa8;
+      --text: #e2e4f0;
+      --muted: #7a7f9a;
+      --green: #3ecf8e;
+      --yellow: #f59e0b;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 { font-size: 1.15rem; font-weight: 600; }
+    header a {
+      margin-left: auto;
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.3rem 0.65rem;
+      transition: color 0.15s;
+    }
+    header a:hover { color: var(--text); }
+    .diagram-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      overflow-x: auto;
+    }
+    .legend {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-top: 2rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Research Intelligence System — Architecture</h1>
+  <a href="/">← Back</a>
+</header>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 860 1020" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:860px;display:block;margin:0 auto;">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7a7f9a"/>
+    </marker>
+    <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7c6af7"/>
+    </marker>
+  </defs>
+
+  <!-- ── User Input box ── -->
+  <rect x="280" y="10" width="300" height="50" rx="10" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+  <text x="430" y="30" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">User Input</text>
+  <text x="430" y="48" text-anchor="middle" fill="#7a7f9a" font-size="10" font-family="Segoe UI,system-ui,sans-serif">Text · PDF · Image · URL · CSV / JSON</text>
+
+  <!-- Input → branches: 5 lines down to input type boxes -->
+  <!-- Central stem -->
+  <line x1="430" y1="60" x2="430" y2="90" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Input type pills row -->
+  <!-- Text -->
+  <rect x="20" y="95" width="120" height="32" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1"/>
+  <text x="80" y="116" text-anchor="middle" fill="#7a7f9a" font-size="11" font-family="Segoe UI,system-ui,sans-serif">✎ Text Query</text>
+  <!-- PDF -->
+  <rect x="158" y="95" width="120" height="32" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1"/>
+  <text x="218" y="116" text-anchor="middle" fill="#7a7f9a" font-size="11" font-family="Segoe UI,system-ui,sans-serif">📄 PDF (PyMuPDF)</text>
+  <!-- Image -->
+  <rect x="296" y="95" width="130" height="32" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1"/>
+  <text x="361" y="116" text-anchor="middle" fill="#7a7f9a" font-size="11" font-family="Segoe UI,system-ui,sans-serif">🖼 Image (Vision API)</text>
+  <!-- URL -->
+  <rect x="444" y="95" width="130" height="32" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1"/>
+  <text x="509" y="116" text-anchor="middle" fill="#7a7f9a" font-size="11" font-family="Segoe UI,system-ui,sans-serif">🔗 URL (BeautifulSoup)</text>
+  <!-- CSV/JSON -->
+  <rect x="592" y="95" width="130" height="32" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1"/>
+  <text x="657" y="116" text-anchor="middle" fill="#7a7f9a" font-size="11" font-family="Segoe UI,system-ui,sans-serif">📊 CSV / JSON</text>
+
+  <!-- Branch lines from stem to pills -->
+  <line x1="430" y1="90" x2="80"  y2="90" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="80"  y1="90" x2="80"  y2="95" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="430" y1="90" x2="218" y2="90" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="218" y1="90" x2="218" y2="95" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="361" y1="90" x2="361" y2="95" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="430" y1="90" x2="509" y2="90" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="509" y1="90" x2="509" y2="95" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="430" y1="90" x2="657" y2="90" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="657" y1="90" x2="657" y2="95" stroke="#2a2d3a" stroke-width="1"/>
+
+  <!-- All converge back to centre at y=155 -->
+  <line x1="80"  y1="127" x2="80"  y2="155" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="218" y1="127" x2="218" y2="155" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="361" y1="127" x2="361" y2="155" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="509" y1="127" x2="509" y2="155" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="657" y1="127" x2="657" y2="155" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="80"  y1="155" x2="657" y2="155" stroke="#2a2d3a" stroke-width="1"/>
+  <line x1="430" y1="155" x2="430" y2="175" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ── AGENT BOXES ── -->
+
+  <!-- 0. Intake Agent — OSS -->
+  <rect x="230" y="180" width="400" height="70" rx="10" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+  <rect x="230" y="180" width="6" height="70" rx="3" fill="#3ecf8e"/>
+  <text x="450" y="202" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">0 · Intake Agent</text>
+  <text x="450" y="220" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Detect type · Clean text · Extract topics · Classify intent</text>
+  <text x="450" y="238" text-anchor="middle" fill="#3ecf8e" font-size="10" font-family="Segoe UI,system-ui,sans-serif">OSS · No LLM · Zero token cost</text>
+
+  <line x1="430" y1="250" x2="430" y2="270" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 1. RAG/Knowledge Agent — OSS -->
+  <rect x="230" y="275" width="400" height="70" rx="10" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+  <rect x="230" y="275" width="6" height="70" rx="3" fill="#3ecf8e"/>
+  <text x="450" y="297" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">1 · RAG / Knowledge Agent</text>
+  <text x="450" y="315" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Keyword search in /knowledge/ · Identify gaps</text>
+  <text x="450" y="333" text-anchor="middle" fill="#3ecf8e" font-size="10" font-family="Segoe UI,system-ui,sans-serif">OSS · No LLM · Local file search</text>
+
+  <line x1="430" y1="345" x2="430" y2="365" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 2. Reasoning Agent — LLM -->
+  <rect x="230" y="370" width="400" height="70" rx="10" fill="#1a1d27" stroke="#4a3fa8" stroke-width="1.5"/>
+  <rect x="230" y="370" width="6" height="70" rx="3" fill="#7c6af7"/>
+  <text x="450" y="392" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">2 · Reasoning Agent</text>
+  <text x="450" y="410" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Generate structured markdown answer · Summarise research</text>
+  <text x="450" y="428" text-anchor="middle" fill="#7c6af7" font-size="10" font-family="Segoe UI,system-ui,sans-serif">LLM · claude-haiku-4-5 · Prompt cached</text>
+
+  <line x1="430" y1="440" x2="430" y2="460" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 3. Action Agent — LLM -->
+  <rect x="230" y="465" width="400" height="70" rx="10" fill="#1a1d27" stroke="#4a3fa8" stroke-width="1.5"/>
+  <rect x="230" y="465" width="6" height="70" rx="3" fill="#7c6af7"/>
+  <text x="450" y="487" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">3 · Action Agent</text>
+  <text x="450" y="505" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Extract metadata · Create or update .md note · Merge on conflict</text>
+  <text x="450" y="523" text-anchor="middle" fill="#7c6af7" font-size="10" font-family="Segoe UI,system-ui,sans-serif">LLM · claude-haiku-4-5 · Prompt cached</text>
+
+  <line x1="430" y1="535" x2="430" y2="555" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 4. Linker Agent — OSS -->
+  <rect x="230" y="560" width="400" height="70" rx="10" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+  <rect x="230" y="560" width="6" height="70" rx="3" fill="#3ecf8e"/>
+  <text x="450" y="582" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">4 · Linker Agent</text>
+  <text x="450" y="600" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Inject [[wiki-links]] · Regenerate _index.md</text>
+  <text x="450" y="618" text-anchor="middle" fill="#3ecf8e" font-size="10" font-family="Segoe UI,system-ui,sans-serif">OSS · No LLM · Regex-based</text>
+
+  <line x1="430" y1="630" x2="430" y2="650" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 5. Validator Agent — LLM -->
+  <rect x="230" y="655" width="400" height="70" rx="10" fill="#1a1d27" stroke="#4a3fa8" stroke-width="1.5"/>
+  <rect x="230" y="655" width="6" height="70" rx="3" fill="#7c6af7"/>
+  <text x="450" y="677" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">5 · Validator Agent</text>
+  <text x="450" y="695" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Score quality 1–10 · Flag broken links · Suggest improvements</text>
+  <text x="450" y="713" text-anchor="middle" fill="#7c6af7" font-size="10" font-family="Segoe UI,system-ui,sans-serif">LLM · claude-haiku-4-5 · Prompt cached</text>
+
+  <line x1="430" y1="725" x2="430" y2="745" stroke="#2a2d3a" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ── Output box ── -->
+  <rect x="180" y="750" width="500" height="90" rx="10" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1.5"/>
+  <text x="430" y="773" text-anchor="middle" fill="#e2e4f0" font-size="13" font-weight="600" font-family="Segoe UI,system-ui,sans-serif">Output</text>
+  <text x="430" y="793" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Answer · Quality Score (1–10) · Agent Trace · Input Type Badge</text>
+  <text x="430" y="811" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Notes Created / Updated · Knowledge Base (sidebar)</text>
+  <text x="430" y="829" text-anchor="middle" fill="#7a7f9a" font-size="10.5" font-family="Segoe UI,system-ui,sans-serif">Git Sync (optional)</text>
+
+  <!-- ── In-memory cache annotation ── -->
+  <rect x="650" y="370" width="170" height="60" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="735" y="392" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="Segoe UI,system-ui,sans-serif">In-memory cache</text>
+  <text x="735" y="408" text-anchor="middle" fill="#7a7f9a" font-size="9.5" font-family="Segoe UI,system-ui,sans-serif">Identical prompts skip</text>
+  <text x="735" y="422" text-anchor="middle" fill="#7a7f9a" font-size="9.5" font-family="Segoe UI,system-ui,sans-serif">API call entirely</text>
+  <line x1="650" y1="400" x2="630" y2="400" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- ── Prompt cache annotation ── -->
+  <rect x="650" y="460" width="170" height="50" rx="8" fill="#1a1d27" stroke="#2a2d3a" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="735" y="480" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="Segoe UI,system-ui,sans-serif">Anthropic prompt cache</text>
+  <text x="735" y="496" text-anchor="middle" fill="#7a7f9a" font-size="9.5" font-family="Segoe UI,system-ui,sans-serif">~70% savings on repeated</text>
+  <text x="735" y="509" text-anchor="middle" fill="#7a7f9a" font-size="9.5" font-family="Segoe UI,system-ui,sans-serif">system prompt tokens</text>
+  <line x1="650" y1="485" x2="630" y2="500" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+</svg>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3ecf8e;"></div> Open source · No LLM cost</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7c6af7;"></div> LLM · claude-haiku-4-5 (or gpt-4o-mini)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Cost optimisation layer</div>
+</div>
+
+</body>
+</html>

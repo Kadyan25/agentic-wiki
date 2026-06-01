@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
@@ -9,7 +9,7 @@ import threading
 import time
 import urllib.request
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 def _self_ping():
@@ -27,7 +27,7 @@ def _self_ping():
 
 threading.Thread(target=_self_ping, daemon=True).start()
 
-from agents.orchestrator import run_pipeline
+from agents.orchestrator import run_pipeline, run_pipeline_streaming
 
 app = FastAPI(title="Agentic Wiki")
 
@@ -54,6 +54,19 @@ class UrlRequest(BaseModel):
 async def query(req: QueryRequest):
     result = run_pipeline(req.query)
     return result
+
+
+@app.post("/api/stream")
+async def stream_query(req: QueryRequest):
+    """SSE endpoint — streams summarizer tokens then sends final result."""
+    return StreamingResponse(
+        run_pipeline_streaming(req.query),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disables Nginx buffering on Render
+        },
+    )
 
 
 @app.post("/api/ingest/pdf")
@@ -93,11 +106,32 @@ async def ingest_url(req: UrlRequest):
     except ImportError:
         raise HTTPException(status_code=500, detail="requests or beautifulsoup4 not installed")
 
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
     try:
-        resp = requests.get(url, timeout=10, headers={"User-Agent": "AgenticWiki/1.0"})
-        resp.raise_for_status()
+        resp = requests.get(url, timeout=15, headers=HEADERS, allow_redirects=True)
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=422, detail="Could not connect to the URL. Check the address and try again.")
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=422, detail="The page took too long to respond (15s timeout).")
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Could not fetch URL: {e}")
+        raise HTTPException(status_code=422, detail=f"Request failed: {e}")
+
+    if resp.status_code == 403:
+        raise HTTPException(status_code=422, detail="Access denied (403) — this site blocks automated requests.")
+    if resp.status_code == 429:
+        raise HTTPException(status_code=422, detail="Rate limited (429) — the site is blocking too many requests. Try again later.")
+    if resp.status_code == 404:
+        raise HTTPException(status_code=422, detail="Page not found (404).")
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=422, detail=f"Page returned HTTP {resp.status_code}.")
 
     soup = BeautifulSoup(resp.text, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
@@ -111,6 +145,90 @@ async def ingest_url(req: UrlRequest):
     query_text = text[:4000]  # cap to avoid excessive token usage
     result = run_pipeline(query_text)
     return result
+
+
+ALLOWED_IMAGE_TYPES = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "webp": "image/webp",
+}
+
+
+@app.post("/api/ingest/image")
+async def ingest_image(file: UploadFile = File(...)):
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    media_type = ALLOWED_IMAGE_TYPES.get(ext)
+    if not media_type:
+        raise HTTPException(status_code=400, detail="Only jpg, jpeg, png, webp files are accepted")
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=400, detail="Image ingestion requires ANTHROPIC_API_KEY")
+
+    image_bytes = await file.read()
+    try:
+        from agents.utils import call_vision
+        extracted = call_vision(
+            image_bytes,
+            media_type,
+            "Extract and describe all text, data, and key information visible in this image. "
+            "Be thorough — include headings, body text, numbers, labels, and any notable visual content.",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Image processing failed: {e}")
+
+    if not extracted.strip():
+        raise HTTPException(status_code=422, detail="No content could be extracted from the image")
+
+    result = run_pipeline(extracted[:4000])
+    return result
+
+
+@app.post("/api/ingest/csv")
+async def ingest_csv(file: UploadFile = File(...)):
+    fname = file.filename.lower()
+    if not (fname.endswith(".csv") or fname.endswith(".json")):
+        raise HTTPException(status_code=400, detail="Only .csv and .json files are accepted")
+
+    raw = await file.read()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")
+
+    try:
+        if fname.endswith(".json"):
+            import json
+            data = json.loads(text)
+            summary = json.dumps(data, indent=2)
+        else:
+            import csv, io
+            reader = csv.reader(io.StringIO(text))
+            rows = list(reader)
+            if not rows:
+                raise HTTPException(status_code=422, detail="CSV file is empty")
+            headers = rows[0]
+            preview = rows[1:6]
+            lines = [
+                f"CSV file: {len(rows) - 1} rows, {len(headers)} columns.",
+                f"Columns: {', '.join(headers)}",
+                "First 5 rows:",
+            ]
+            for row in preview:
+                lines.append("  " + " | ".join(row))
+            summary = "\n".join(lines)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not parse file: {e}")
+
+    result = run_pipeline(summary[:4000])
+    return result
+
+
+@app.get("/api/provider")
+async def get_provider():
+    from agents.utils import get_active_provider
+    return {"provider": get_active_provider()}
 
 
 @app.get("/api/notes")

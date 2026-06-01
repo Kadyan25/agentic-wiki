@@ -27,7 +27,6 @@ def run(query: str, context: dict) -> dict:
             broken_links.append(link)
 
     score_response = call_ai(
-        "Always respond in structured JSON format. "
         "You are a quality validator for a knowledge base. "
         "Given a query, a summary, and the written note, score the quality from 1-10. "
         "Reply with exactly:\nSCORE: <number>\nISSUES: <comma-separated issues or 'none'>\n"
