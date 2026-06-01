@@ -129,8 +129,11 @@ Multimodal Input
 | `claude-haiku-4-5` for write/validate | Action + Validator agents | ~5× cheaper than Sonnet for non-reasoning tasks |
 | `claude-sonnet-4-6` only for reasoning | Reasoning agent | Quality where it matters, cost contained |
 | In-memory response cache | `utils.call_ai()` | Identical prompts hit cache — zero API calls on repeat |
+| Embedding cache | `research_agent._embed()` | Repeated queries skip Google API call entirely |
+| Parallel Extraction + RAG | Orchestrator | Both run concurrently after Intake — ~30-40% faster pipeline |
+| Intake topics as note title | Writer Agent (text queries) | Skips one Haiku metadata call on text queries |
 | Anthropic prompt caching | All LLM agents | System prompts cached server-side — reduces input tokens on repeated calls |
-| 2-attempt retry with 1s backoff | `utils.call_ai()` | Handles transient API failures without crashing the pipeline |
+| 2-attempt retry with 1s backoff | `utils.call_ai()`, `call_vision()`, `stream_ai()` | Handles transient API failures without crashing the pipeline |
 | Validator retry loop | Orchestrator | If score < 6, re-runs Reasoning Agent with issues as feedback — one retry max |
 | Grounding instruction | Reasoning Agent system prompt | Prevents hallucination — model told to only use facts from provided notes |
 | 4000-character input cap | All ingest endpoints | Prevents runaway token usage on large PDFs and URLs |
