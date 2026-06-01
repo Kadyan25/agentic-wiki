@@ -22,6 +22,7 @@
 - [[Few Shot Prompting Explained]] → `few-shot-prompting-explained.md`
 - [[Fine Tuning Language Models]] → `fine-tuning-language-models.md`
 - [[Gradient Descent Optimization]] → `gradient-descent-optimization.md`
+- [[Hardcore Engineer At Dualentry]] → `hardcore-engineer-at-dualentry.md`
 - [[Instruction Tuning Explained]] → `instruction-tuning-explained.md`
 - [[Instruction Tuning In Language Models]] → `instruction-tuning-in-language-models.md`
 - [[Introduction To Deep Learning]] → `introduction-to-deep-learning.md`
