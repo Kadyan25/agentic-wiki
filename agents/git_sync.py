@@ -20,6 +20,10 @@ def _run(cmd: list, **kwargs) -> subprocess.CompletedProcess:
 
 
 def sync(query: str = ""):
+    if os.getenv("DISABLE_GIT_SYNC"):
+        logger.info("Skipping — DISABLE_GIT_SYNC is set.")
+        return
+
     token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPO")
 

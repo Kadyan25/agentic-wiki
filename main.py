@@ -9,7 +9,7 @@ import threading
 import time
 import urllib.request
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 def _self_ping():
@@ -111,6 +111,90 @@ async def ingest_url(req: UrlRequest):
     query_text = text[:4000]  # cap to avoid excessive token usage
     result = run_pipeline(query_text)
     return result
+
+
+ALLOWED_IMAGE_TYPES = {
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "webp": "image/webp",
+}
+
+
+@app.post("/api/ingest/image")
+async def ingest_image(file: UploadFile = File(...)):
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    media_type = ALLOWED_IMAGE_TYPES.get(ext)
+    if not media_type:
+        raise HTTPException(status_code=400, detail="Only jpg, jpeg, png, webp files are accepted")
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(status_code=400, detail="Image ingestion requires ANTHROPIC_API_KEY")
+
+    image_bytes = await file.read()
+    try:
+        from agents.utils import call_vision
+        extracted = call_vision(
+            image_bytes,
+            media_type,
+            "Extract and describe all text, data, and key information visible in this image. "
+            "Be thorough — include headings, body text, numbers, labels, and any notable visual content.",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Image processing failed: {e}")
+
+    if not extracted.strip():
+        raise HTTPException(status_code=422, detail="No content could be extracted from the image")
+
+    result = run_pipeline(extracted[:4000])
+    return result
+
+
+@app.post("/api/ingest/csv")
+async def ingest_csv(file: UploadFile = File(...)):
+    fname = file.filename.lower()
+    if not (fname.endswith(".csv") or fname.endswith(".json")):
+        raise HTTPException(status_code=400, detail="Only .csv and .json files are accepted")
+
+    raw = await file.read()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1")
+
+    try:
+        if fname.endswith(".json"):
+            import json
+            data = json.loads(text)
+            summary = json.dumps(data, indent=2)
+        else:
+            import csv, io
+            reader = csv.reader(io.StringIO(text))
+            rows = list(reader)
+            if not rows:
+                raise HTTPException(status_code=422, detail="CSV file is empty")
+            headers = rows[0]
+            preview = rows[1:6]
+            lines = [
+                f"CSV file: {len(rows) - 1} rows, {len(headers)} columns.",
+                f"Columns: {', '.join(headers)}",
+                "First 5 rows:",
+            ]
+            for row in preview:
+                lines.append("  " + " | ".join(row))
+            summary = "\n".join(lines)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Could not parse file: {e}")
+
+    result = run_pipeline(summary[:4000])
+    return result
+
+
+@app.get("/api/provider")
+async def get_provider():
+    from agents.utils import get_active_provider
+    return {"provider": get_active_provider()}
 
 
 @app.get("/api/notes")

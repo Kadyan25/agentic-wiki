@@ -5,7 +5,6 @@ def run(query: str, context: dict) -> dict:
     research_output = context.get("research", {}).get("output", "")
 
     system_prompt = (
-        "Always respond in structured JSON format. "
         "You are a knowledge summarizer. Given a user query and existing research notes, "
         "produce a structured, concise markdown summary. Include: a direct answer to the query, "
         "key facts as bullet points, and relevant subtopics. Keep it under 400 words."
@@ -17,7 +16,7 @@ def run(query: str, context: dict) -> dict:
         "Produce a structured markdown summary answering the query."
     )
 
-    summary = call_ai(system_prompt, user_message, max_tokens=1000)
+    summary = call_ai(system_prompt, user_message, max_tokens=1000, model="claude-sonnet-4-6")
 
     return {
         "output": summary,
